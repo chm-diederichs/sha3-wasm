@@ -368,11 +368,35 @@
         (i64.load offset=192 (get_local $state))
         (set_local $a_24)
 
-
+;; (call $i64.log (get_local $a_0 ))
+;; (call $i64.log (get_local $a_1 ))
+;; (call $i64.log (get_local $a_2 ))
+;; (call $i64.log (get_local $a_3 ))
+;; (call $i64.log (get_local $a_4 ))
+;; (call $i64.log (get_local $a_5 ))
+;; (call $i64.log (get_local $a_6 ))
+;; (call $i64.log (get_local $a_7 ))
+;; (call $i64.log (get_local $a_8 ))
+;; (call $i64.log (get_local $a_9 ))
+;; (call $i64.log (get_local $a_10))
+;; (call $i64.log (get_local $a_11))
+;; (call $i64.log (get_local $a_12))
+;; (call $i64.log (get_local $a_13))
+;; (call $i64.log (get_local $a_14))
+;; (call $i64.log (get_local $a_15))
+;; (call $i64.log (get_local $a_16))
+;; (call $i64.log (get_local $a_17))
+;; (call $i64.log (get_local $a_18))
+;; (call $i64.log (get_local $a_19))
+;; (call $i64.log (get_local $a_20))
+;; (call $i64.log (get_local $a_21))
+;; (call $i64.log (get_local $a_22))
+;; (call $i64.log (get_local $a_23))
+;; (call $i64.log (get_local $a_24))
         ;; ; ; ; ; ; ; ;;;
         ;; Perumutation ;;
         ;;; ; ; ; ; ; ; ;;
-
+        
         ;; ROUND 0
 
         ;; THETA
@@ -629,16 +653,13 @@
         (set_local $a_19 (i64.xor (i64.and (i64.xor (get_local $b_15) (i64.const -1)) (get_local $b_16)) (get_local $b_19)))
         (set_local $a_24 (i64.xor (i64.and (i64.xor (get_local $b_20) (i64.const -1)) (get_local $b_21)) (get_local $b_24)))
 
+
         ;; IOTA
 
         (get_local $a_0)
         (i64.const 0x0000000000000001)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
-
-
         ;; ROUND 1
 
         ;; THETA
@@ -901,8 +922,6 @@
         (i64.const 0x0000000000008082)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 2
@@ -1168,8 +1187,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 3
 
@@ -1433,8 +1450,6 @@
         (i64.const 0x8000000080008000)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 4
@@ -1700,8 +1715,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 5
 
@@ -1965,8 +1978,6 @@
         (i64.const 0x0000000080000001)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 6
@@ -2232,8 +2243,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 7
 
@@ -2497,8 +2506,6 @@
         (i64.const 0x8000000000008009)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 8
@@ -2764,8 +2771,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 9
 
@@ -3029,8 +3034,6 @@
         (i64.const 0x0000000000000088)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 10
@@ -3296,8 +3299,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 11
 
@@ -3561,8 +3562,6 @@
         (i64.const 0x000000008000000A)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 12
@@ -3828,8 +3827,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 13
 
@@ -4093,8 +4090,6 @@
         (i64.const 0x800000000000008B)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 14
@@ -4360,8 +4355,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 15
 
@@ -4625,8 +4618,6 @@
         (i64.const 0x8000000000008003)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 16
@@ -4892,8 +4883,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 17
 
@@ -5157,8 +5146,6 @@
         (i64.const 0x8000000000000080)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 18
@@ -5424,8 +5411,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 19
 
@@ -5689,8 +5674,6 @@
         (i64.const 0x800000008000000A)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 20
@@ -5956,8 +5939,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 21
 
@@ -6221,8 +6202,6 @@
         (i64.const 0x8000000000008080)
         (i64.xor)
         (set_local $a_0)
-
-        (call $i64.log (get_local $a_0))
 
 
         ;; ROUND 22
@@ -6488,8 +6467,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-
 
         ;; ROUND 23
 
@@ -6754,8 +6731,6 @@
         (i64.xor)
         (set_local $a_0)
 
-        (call $i64.log (get_local $a_0))
-        (call $i32.log (i32.const 0))
 
         ;; PERMUTATION END
 
