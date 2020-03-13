@@ -23,7 +23,7 @@ const wasm = require('./keccak.js')({
 */
 
 const buf = Buffer.alloc(256, Buffer.from('1234567890abcdef', 'hex'))
-wasm.memory[0] = 576 &0xff
+wasm.memory[0] = 576 & 0xff
 wasm.memory[1] = (576 >> 8) & 0xff
 
 wasm.memory[8] = 64 & 0xff
@@ -34,9 +34,9 @@ wasm.memory[500] = 0x01
 wasm.memory[571] = 0x80
 console.log(wasm.exports.absorb(500, 72, 0))
 wasm.exports.f_permute(0)
-console.log(Buffer.from(wasm.memory.subarray(24, 88)).toString('hex'))
-wasm.exports.squeeze(884, 0)
-// console.log(Buffer.from(wasm.memory.subarray(884, 948)).toString('hex'))
+// console.log(Buffer.from(wasm.memory.subarray(24, 88)).toString('hex'))
+wasm.exports.squeeze(884, 0, 512)
+console.log(Buffer.from(wasm.memory.subarray(884, 948)).toString('hex'))
 
 // hash.update(buf)
 console.log(Buffer.from(keccak512.digest('')).toString('hex'))
