@@ -31,7 +31,7 @@ function theta_2() {
 function theta_3(i) {
   let str = ''
   for (let i = 0; i < 5; i++) {
-    str += `(i64.shr_u (get_local $c_${i + 1 > 4 ? i - 4 : i + 1}) (i64.sub (get_local $w) (i64.const 1)))
+    str += `(i64.shr_u (get_local $c_${i + 1 > 4 ? i - 4 : i + 1}) (i64.sub (get_local $length) (i64.const 1)))
 (i64.shl (get_local $c_${i + 1 > 4 ? i - 4 : i + 1}) (i64.const 1))
 (i64.or)
 (get_local $c_${(i - 1) < 0 ? 4 + i : i - 1})
@@ -48,18 +48,18 @@ function theta_3(i) {
   return str
 }
 
-function rho () {
-  str = ';; RHO\n\n'
+function rho_pi () {
+  str = ';; RHO & PI\n\n(set_local $b_0 (get_local $a_0))\n\n'
 
   var x = 1
   var y = 0
   let _y = y
 
-  for (let t = 0; t < 23; t++) {
-    str += `(i64.shr_u (get_local $a_${(x + 5 * y) % 25}) (i64.sub (get_local $w) (i64.rem_u (i64.const ${(t + 1) * (t + 2) / 2}) (get_local $w))))
-(i64.shl (get_local $a_${(x + 5 * y) % 25}) (i64.rem_u (i64.const ${(t + 1) * (t + 2) / 2}) (get_local $w)))
+  for (let t = 0; t < 24; t++) {
+    str += `(i64.shr_u (get_local $a_${(x + 5 * y) % 25}) (i64.sub (get_local $length) (i64.rem_u (i64.const ${(t + 1) * (t + 2) / 2}) (get_local $length))))
+(i64.shl (get_local $a_${(x + 5 * y) % 25}) (i64.rem_u (i64.const ${(t + 1) * (t + 2) / 2}) (get_local $length)))
 (i64.or)
-(set_local $a_${(x + 5 * y) % 25})
+(set_local $b_${(y + 5 * (((2 * x) + (y * 3)) % 5) % 25)})
 
 `
     
@@ -71,28 +71,12 @@ function rho () {
   return str
 }
 
-function pi () {
-  let str = ';; PI\n\n'
-
-  for (let x = 0; x < 5; x++) {
-    for (let y = 0; y < 5; y++) {
-      var _x = y
-      var _y = (2 * x + 3 * y) % 5
-
-      str += `(set_local $a_${_x + 5 * _y} (get_local $a_${x + 5 * y}))\n`
-    }
-    str += '\n'
-  }
-
-  return str
-}
-
 function chi () {
   let str = ';; CHI\n\n'
 
   for (let x = 0; x < 5; x++) {
     for (let y = 0; y < 5; y++) {
-      str += `(set_local $a_${x + 5 * y} (i64.xor (i64.and (i64.xor (get_local $a_${(x + 1 + y * 5) % 25}) (i64.const -1)) (get_local $a_${(x + 2 + y * 5) % 25})) (get_local $a_${x + 5 * y})))\n`
+      str += `(set_local $a_${x + 5 * y} (i64.xor (i64.and (i64.xor (get_local $b_${((x + 1) % 5 + y * 5) % 25}) (i64.const -1)) (get_local $b_${((x + 2) % 5 + y * 5) % 25})) (get_local $b_${x + 5 * y})))\n`
     }
     str += '\n'
   }
@@ -101,40 +85,45 @@ function chi () {
 }
 
 function iota (i) {
+  const rc = [
+    '0x0000000000000001', '0x0000000000008082', '0x800000000000808A', '0x8000000080008000',
+    '0x000000000000808B', '0x0000000080000001', '0x8000000080008081', '0x8000000000008009',
+    '0x000000000000008A', '0x0000000000000088', '0x0000000080008009', '0x000000008000000A',
+    '0x000000008000808B', '0x800000000000008B', '0x8000000000008089', '0x8000000000008003',
+    '0x8000000000008002', '0x8000000000000080', '0x000000000000800A', '0x800000008000000A',
+    '0x8000000080008081', '0x8000000000008080', '0x0000000080000001', '0x8000000080008008'
+  ]
+  return `;; IOTA\n
+(get_local $a_0)
+(i64.const ${rc[i]})
+(i64.xor)
+(set_local $a_0)\n\n(call $i64.log (get_local $a_0))\n\n`
+
 return `;; IOTA\n
-(set_local $lfsr (i64.const 1))
-(set_local $shift (i64.const 0))
-(set_local $j (i32.const 0))
+(set_local $lfsr (i64.const 0))
+(set_local $shift (i64.const 1))
 (set_local $round_constant (i64.const 0))
+
+;; count = j + 7 * i_r
+(i32.const ${i})
+(i32.const 7)
+(i32.mul)
+(set_local $count)
 
 (block $iota_end
     (loop $iota
-        (i32.eq (get_local $j) (get_local $length))
+        (i64.gt_u (get_local $shift) (get_local $length))
         (br_if $iota_end)
-
-        ;; count = j + 7 * i_r
-        (get_local $j)
-        (i64.const ${i})
-        (i64.const 7)
-        (i64.mul)
-        (i64.add)
-        (set_local $count)
-
-        ;; j++
-        (get_local $j)
-        (i32.const 1)
-        (i32.add)
-        (set_local $j)
 
         ;; LFSR - polynomial: 101110001
         (block $inner_end
             (loop $inner
-                (i64.eq (get_local $count) (i64.const 0))
+                (i32.eq (get_local $count) (i32.const 0))
                 (br_if $inner_end)
 
                 (get_local $count)
-                (i64.const 1)
-                (i64.sub)
+                (i32.const 1)
+                (i32.sub)
                 (set_local $count)
 
                 ;; shift the registers by 1
@@ -170,6 +159,11 @@ return `;; IOTA\n
         (get_local $shift)
         (i64.mul)
         (set_local $shift)
+
+        ;; j++
+        (get_local $count)
+        (i32.const 1)
+        (i32.add)
 
         (br $iota)))
 
@@ -221,8 +215,7 @@ function round (i) {
   str += theta_2()
   str += theta_3()
 
-  str += rho()
-  str += pi()
+  str += rho_pi()
   str += chi()
   str += iota(i)
   str += '\n'
@@ -252,14 +245,38 @@ function loadFromState () {
   }
 }
 
+function storeToState () {
+  for (let i = 0; i < 25; i++) {
+    console.log(`(get_local $state)
+(get_local $a_${i})
+(i64.store offset=${8*i})
+
+`)
+  }
+}
+
+function squeezeOutput () {
+  for (let i = 0; i < 25; i++) {
+    console.log(`(get_local $output)
+(i64.load offset=${8*i} (get_local $state))
+(i64.store offset=${8*i})
+(set_local $i (i64.add (get_local $i) (i64.const 64)))
+(i64.ge (get_local $i) (get_local $bits))
+(br_if $squeeze_end)\n`)
+  }
+}
+
+console.log(chi())
 var file = fs.createWriteStream('./output.txt', function (err) {
   if (err) console.err(err)
 })
 
-for (let i = 0; i < 25; i++) {
+squeezeOutput() 
+for (let i = 0; i < 24; i++) {
   file.write(round(i))
 }
 
+// storeToState()
 // loadFromState()
 
 // for (let i = 0; i < 5; i ++) {
