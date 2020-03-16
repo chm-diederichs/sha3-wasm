@@ -32,7 +32,7 @@
   (func $init (export "init") (param $ctx i32)
       ;; schema
       ;;   i32 rate;
-      ;;   i32 n_r;
+      ;;   i32 prev_bytes;
       ;;   i64 length;
       ;;   i64 inlen;
       ;;   state[25, 50, 100, 200]
@@ -89,39 +89,42 @@
       (get_local $i)
       (i32.sub))
 
-  (func $absorb (export "absorb") (param $input i32) (param $inlen i32) (param $ctx i32)
+  (func $absorb (export "absorb") (param $input i32) (param $input_end i32) (param $ctx i32)
       (result i32)
 
       (local $i i32)
-      (local $total_in i32)
+      (local $tmp i32)
+      (local $input_start i32)
       (local $width i64)
       (local $rate i32)
+
+      (get_local $input)
+      (set_local $input_start)
 
       (get_local $ctx)
       (i32.load)
       (set_local $rate)
 
+      (i32.load offset=4 (get_local $ctx))
       (i64.load offset=8 (get_local $ctx))
       (i64.const 25)
       (i64.mul)
-      (set_local $width)
+      (i32.wrap/i64)
+      (i32.rem_u)
+      (tee_local $tmp)
+      (get_local $tmp)
+      (i32.const 8)
+      (i32.rem_u)
+      (i32.sub)
+      (set_local $i)
 
       (block $input_end
           (loop $next_round
-              (get_local $total_in)
-              (get_local $i)
-              (i32.add)
-              (set_local $total_in)
-
-              (set_local $i (i32.const 0))
-
               (block $rate_end
                   (loop $input
                       ;; last permute never called
-                      (get_local $i)
-                      (get_local $total_in)
-                      (i32.add)
-                      (get_local $inlen)
+                      (get_local $input)
+                      (get_local $input_end)
                       (i32.eq)
                       (br_if $input_end)
 
@@ -130,11 +133,10 @@
                       (i32.eq)
                       (br_if $rate_end)
 
+                      ;; if we can, load input 8 bytes at a time
                       (block $less_than_8_bytes
-                          (get_local $total_in)
-                          (get_local $i)
-                          (i32.add)
-                          (get_local $inlen)
+                          (get_local $input_end)
+                          (get_local $input)
                           (i32.sub)
                           (i32.const 8)
                           (i32.lt_u)
@@ -148,15 +150,16 @@
                           (i32.add)
                           (i64.load offset=24)
                           (get_local $input)
-                          (get_local $total_in)
-                          (get_local $i)
-                          (i32.add)
-                          (i32.add)
                           (i64.load)
                           (i64.xor)
                           (i64.store offset=24)
 
-                          ;; i++
+                          ;; i, input += 8
+                          (get_local $input)
+                          (i32.const 8)
+                          (i32.add)
+                          (set_local $input)
+
                           (get_local $i)
                           (i32.const 8)
                           (i32.add)
@@ -167,42 +170,45 @@
                       (get_local $ctx)
                       (get_local $i)
                       (i32.add)
-                      (get_local $input)
+                      (get_local $ctx)
                       (get_local $i)
                       (i32.add)
+                      (i64.load8_u offset=24)
+                      (get_local $input)
                       (i64.load8_u)
-                      (i64.store offset=24)
+                      (i64.xor)
+                      (i64.store8 offset=24)
+
+                      ;; i++, input++
+                      (get_local $input)
+                      (i32.const 1)
+                      (i32.add)
+                      (set_local $input)
 
                       (get_local $i)
                       (i32.const 1)
                       (i32.add)
+                      (set_local $i)
                       (br $input)))
-
-              ;; (block $capacity_end
-              ;;     (loop $capacity
-              ;;         (i32.mul (get_local $i) (i32.const 8))
-              ;;         (i32.wrap/i64 (get_local $width))
-              ;;         (i32.eq)
-              ;;         (br_if $capacity_end)
-
-              ;;         ;; filled up bitrate, add capacity zerostring
-              ;;         (get_local $ctx)
-              ;;         (get_local $i)
-              ;;         (i32.add)
-              ;;         (i64.const 0)
-              ;;         (i64.store)
-
-              ;;         (get_local $i)
-              ;;         (i32.const 8)
-              ;;         (i32.add)
-              ;;         (set_local $i)
-              ;;         (br $capacity)))
 
               (get_local $ctx)
               (call $f_permute)
+
+              (set_local $i (i32.const 0))
+
               (br $next_round)))
 
-      (i32.rem_u (get_local $i) (i32.const 8)))
+      (get_local $ctx)
+      (get_local $input)
+      (get_local $input_start)
+      (i32.sub)
+      (i32.store offset=4)
+
+      (get_local $input)
+      (get_local $input_start)
+      (i32.sub)
+      (i32.const 8)
+      (i32.rem_u))
 
   (func $squeeze (export "squeeze") (param $output i32) (param $ctx i32) (param $bits i32)
       ;; this is all wrong
