@@ -22,7 +22,7 @@ const wasm = require('./keccak.js')({
     Pad
 */
 
-const buf = Buffer.alloc(71, Buffer.from('1234567890abcdef', 'hex'))
+const buf = Buffer.alloc(189, Buffer.from('1234567890abcdef', 'hex'))
 wasm.memory[0] = 576 & 0xff
 wasm.memory[1] = (576 >> 8) & 0xff
 
@@ -33,7 +33,7 @@ wasm.memory.set(buf, 500)
 // wasm.memory[508] = 0x01
 // wasm.memory[571] = 0x80
 var padLen = wasm.exports.pad(576, 500 + buf.byteLength, buf.byteLength)
-console.log(wasm.exports.absorb(500, 72, 0))
+console.log(wasm.exports.absorb(500, buf.byteLength + padLen, 0))
 wasm.exports.f_permute(0)
 // console.log(Buffer.from(wasm.memory.subarray(24, 88)).toString('hex'))
 wasm.exports.squeeze(884, 0, 512)

@@ -131,7 +131,9 @@
                       (br_if $rate_end)
 
                       (block $less_than_8_bytes
+                          (get_local $total_in)
                           (get_local $i)
+                          (i32.add)
                           (get_local $inlen)
                           (i32.sub)
                           (i32.const 8)
@@ -146,7 +148,9 @@
                           (i32.add)
                           (i64.load offset=24)
                           (get_local $input)
+                          (get_local $total_in)
                           (get_local $i)
+                          (i32.add)
                           (i32.add)
                           (i64.load)
                           (i64.xor)
