@@ -1,5 +1,6 @@
 const assert = require('nanoassert')
 keccak512 = require('js-sha3').keccak512;
+
 const wasm = require('./keccak.js')({
   imports: {
     debug: {
@@ -14,164 +15,107 @@ const wasm = require('./keccak.js')({
   }
 })
 
-/* Flow
+let head = 0
+const freeList = []
 
-  Update:
-    Absorb
-    Absorb
-    Pad
-*/
+function Keccak (bitrate = 576, wordLength = 64) {
+  if (!(this instanceof Keccak)) return new Keccak()
+  if (!(wasm && wasm.exports)) throw new Error('WASM not loaded. Wait for Keccak.ready(cb)')
 
-const buf = Buffer.alloc(189, Buffer.from('1234567890abcdef', 'hex'))
-wasm.exports.init(0, 576, 64)
+  if (!freeList.length) {
+    freeList.push(head)
+    head += 224 // need 100 bytes for internal state
+  }
 
-wasm.memory.set(buf, 500)
+  this.finalized = false
+  this.bitrate = bitrate
+  this.digestLength = 1600 - bitrate / 2
+  this.pointer = freeList.pop()
+  this.alignOffset = 0
+  this.inputLength = 0
 
-wasm.memory.fill(0, 24, 224)
-// var padLen = wasm.exports.pad(576, 500 + buf.byteLength, buf.byteLength)
+  wasm.exports.init(this.pointer, this.bitrate, wordLength)
 
-var overlay = wasm.exports.absorb(500, 500 + buf.byteLength, 0)
+  if (this.pointer + this.digestLength > wasm.memory.length) wasm.realloc(this.pointer + 100)
+}
 
-wasm.memory.fill(0, 500, 500 + overlay)
-wasm.memory.set(buf, 500 + overlay)
+Keccak.prototype.update = function (input, enc) {
+  assert(this.finalized === false, 'Hash instance finalized')
 
-var padLen = wasm.exports.pad(576, 500 + overlay + buf.byteLength, 2 * buf.byteLength)
-overlay = wasm.exports.absorb(500, 500 + overlay + buf.byteLength + padLen, 0)
-wasm.exports.f_permute(0)
+  if (head % 8 !== 0) head += 8 - head % 8
+  assert(head % 8 === 0, 'input shoud be aligned for int64')
 
-// console.log(Buffer.from(wasm.memory.subarray(24, 88)).toString('hex'))
-
-wasm.exports.squeeze(884, 0, 512)
-console.log(Buffer.from(wasm.memory.subarray(884, 948)).toString('hex'))
-
-// console.log(Buffer.from(keccak512.digest(buf)).toString('hex'))
-console.log(Buffer.from(keccak512.digest(Buffer.concat([buf,buf]))).toString('hex'))
-// let head = 0
-// const freeList = []
-
-// function Keccak () {
-//   if (!(this instanceof Keccak)) return new Keccak()
-//   if (!(wasm && wasm.exports)) throw new Error('WASM not loaded. Wait for Sha256.ready(cb)')
-
-//   if (!freeList.length) {
-//     freeList.push(head)
-//     head += 224 // need 100 bytes for internal state
-//   }
-
-//   this.finalized = false
-//   this.digestLength = SHA256_BYTES
-//   this.pointer = freeList.pop()
-//   this.leftover = Buffer.alloc(0)
-
-//   wasm.memory.fill(0, this.pointer, this.pointer + 242)
-
-//   if (this.pointer + this.digestLength > wasm.memory.length) wasm.realloc(this.pointer + 100)
-// }
-
-// Sha256.prototype.update = function (input, enc) {
-//   assert(this.finalized === false, 'Hash instance finalized')
-
-//   if (head % 4 !== 0) head += 4 - head % 4
-//   assert(head % 4 === 0, 'input shoud be aligned for int32')
-
-//   let [ inputBuf, length ] = formatInput(input, enc)
+  let [ inputBuf, length ] = formatInput(input, enc)
   
-//   assert(inputBuf instanceof Uint8Array, 'input must be Uint8Array or Buffer')
+  assert(inputBuf instanceof Uint8Array, 'input must be Uint8Array or Buffer')
   
-//   if (head + length > wasm.memory.length) wasm.realloc(head + input.length)
+  if (head + length > wasm.memory.length) wasm.realloc(head + length)
   
-//   if (this.leftover != null) {
-//     wasm.memory.set(this.leftover, head)
-//     wasm.memory.set(inputBuf, this.leftover.byteLength + head)
-//   } else {
-//     wasm.memory.set(inputBuf, head)
-//   }
+  if (this.alignOffset) wasm.memory.fill(0, head, head + this.alignOffset)
+  wasm.memory.set(inputBuf, head + this.alignOffset)
   
-//   const overlap = this.leftover ? this.leftover.byteLength : 0
-//   const leftover = wasm.exports.sha256(this.pointer, head, head + length + overlap, 0)
+  this.alignOffset = wasm.exports.absorb(this.pointer, head, head + this.alignOffset + length)
+  this.inputLength += length
+  return this
+}
 
-//   this.leftover = inputBuf.slice(inputBuf.byteLength - leftover)
-//   return this
-// }
+Keccak.prototype.digest = function (digestLength, enc, offset = 0) {
+  assert(this.finalized === false, 'Hash instance finalized')
 
-// Sha256.prototype.digest = function (enc, offset = 0) {
-//   assert(this.finalized === false, 'Hash instance finalized')
+  this.finalized = true
+  freeList.push(this.pointer)
 
-//   this.finalized = true
-//   freeList.push(this.pointer)
+  const padLen = wasm.exports.pad(this.bitrate, head + this.alignOffset, this.inputLength)
+  wasm.exports.absorb(this.pointer, head, head + this.alignOffset + padLen)
+  wasm.exports.f_permute(this.pointer)
 
-//   wasm.exports.sha256(this.pointer, head, head + this.leftover.byteLength, 1)
+  wasm.exports.squeeze(this.pointer, head, digestLength)
+  const resultBuf = Buffer.from(wasm.memory.subarray(head, head + digestLength / 8))
 
-//   const resultBuf = readReverseEndian(wasm.memory, 4, this.pointer, this.digestLength)
+  if (!enc) {    
+    return resultBuf
+  }
 
-//   if (!enc) {    
-//     return resultBuf
-//   }
+  if (typeof enc === 'string') {
+    return resultBuf.toString(enc)
+  }
 
-//   if (typeof enc === 'string') {
-//     return resultBuf.toString(enc)
-//   }
+  assert(enc instanceof Uint8Array, 'input must be Uint8Array or Buffer')
+  assert(enc.byteLength >= this.digestLength + offset, 'input not large enough for digest')
 
-//   assert(enc instanceof Uint8Array, 'input must be Uint8Array or Buffer')
-//   assert(enc.byteLength >= this.digestLength + offset, 'input not large enough for digest')
+  for (let i = 0; i < this.digestLength; i++) {
+    enc[i + offset] = resultBuf[i]
+  }
 
-//   for (let i = 0; i < this.digestLength; i++) {
-//     enc[i + offset] = resultBuf[i]
-//   }
+  return enc
+}
 
-//   return enc
-// }
+Keccak.ready = function (cb) {
+  if (!cb) cb = noop
+  if (!wasm) return cb(new Error('WebAssembly not supported'))
 
-// Sha256.ready = function (cb) {
-//   if (!cb) cb = noop
-//   if (!wasm) return cb(new Error('WebAssembly not supported'))
+  var p = new Promise(function (reject, resolve) {
+    wasm.onload(function (err) {
+      if (err) resolve(err)
+      else reject()
+      cb(err)
+    })
+  })
 
-//   var p = new Promise(function (reject, resolve) {
-//     wasm.onload(function (err) {
-//       if (err) resolve(err)
-//       else reject()
-//       cb(err)
-//     })
-//   })
+  return p
+}
 
-//   return p
-// }
+Keccak.prototype.ready = Keccak.ready
 
-// Sha256.prototype.ready = Sha256.ready
+function noop () {}
 
-// function noop () {}
+function formatInput (input, enc = null) {
+  let result
+  if (Buffer.isBuffer(input)) {
+    result = input
+  } else {
+    result = Buffer.from(input, enc)
+  }
 
-// function formatInput (input, enc = null) {
-//   let result
-//   if (Buffer.isBuffer(input)) {
-//     result = input
-//   } else {
-//     result = Buffer.from(input, enc)
-//   }
-
-//   return [result, result.byteLength]
-// }
-
-// function readReverseEndian (buf, interval, start, len) {
-//   const result = Buffer.allocUnsafe(len)
-
-//   for (let i = 0; i < len; i++) {
-//     const index = Math.floor(i / interval) * interval + (interval - 1) - i % interval
-//     result[index] = buf[i + start]
-//   }
-
-//   return result
-// }
-
-// function hexSlice (buf, start = 0, len) {
-//   if (!len) len = buf.byteLength
-
-//   var str = ''
-//   for (var i = 0; i < len; i++) str += toHex(buf[start + i])
-//   return str
-// }
-
-// function toHex (n) {
-//   if (n < 16) return '0' + n.toString(16)
-//   return n.toString(16)
-// }
+  return [result, result.byteLength]
+}

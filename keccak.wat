@@ -122,7 +122,7 @@
       (get_local $i)
       (i32.sub))
 
-  (func $absorb (export "absorb") (param $input i32) (param $input_end i32) (param $ctx i32)
+  (func $absorb (export "absorb") (param $ctx i32) (param $input i32) (param $input_end i32)
       (result i32)
 
       (local $i i32)
@@ -232,9 +232,16 @@
               (br $next_round)))
 
       (get_local $ctx)
+      (get_local $ctx)
+      (i32.load offset=4)
+      (i32.const 8)
+      (i32.div_u)
+      (i32.const 8)
+      (i32.mul)
       (get_local $input)
       (get_local $input_start)
       (i32.sub)
+      (i32.add)
       (i32.store offset=4)
 
       (get_local $input)
@@ -243,10 +250,10 @@
       (i32.const 8)
       (i32.rem_u))
 
-  (func $squeeze (export "squeeze") (param $output i32) (param $ctx i32) (param $bits i32)
+  (func $squeeze (export "squeeze") (param $ctx i32) (param $output i32) (param $length i32)
       ;; this is all wrong
       (local $state i32)
-      (local $bit_count i32)
+      (local $byte_count i32)
       (local $i i32)
       (local $byterate i32)
 
@@ -262,7 +269,7 @@
 
       (block $squeeze_end
           (loop $squeeze
-              (i32.ge_u (get_local $bit_count) (get_local $bits))
+              (i32.ge_u (get_local $byte_count) (get_local $length))
               (br_if $squeeze_end)
 
               (set_local $i (i32.const 0))
@@ -443,17 +450,16 @@
               (get_local $byterate)
               (i32.add)
               (set_local $output)
-              
-              (get_local $bit_count)
-              (i32.mul (get_local $byterate) (i32.const 8))
+
+              (get_local $byte_count)
+              (get_local $byterate)
               (i32.add)
-              (set_local $bit_count)
+              (set_local $byte_count)
 
               (call $f_permute (get_local $ctx))
               (br $squeeze))))
 
     (func $f_permute (export "f_permute") (param $ctx i32)
-
         (local $c_0 i64) (local $d_0 i64)
         (local $c_1 i64) (local $d_1 i64)
         (local $c_2 i64) (local $d_2 i64)
@@ -840,6 +846,8 @@
         (i64.const 0x0000000000000001)
         (i64.xor)
         (set_local $a_0)
+
+
         ;; ROUND 1
 
         ;; THETA
