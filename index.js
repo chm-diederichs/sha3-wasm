@@ -23,34 +23,29 @@ const wasm = require('./keccak.js')({
 */
 
 const buf = Buffer.alloc(189, Buffer.from('1234567890abcdef', 'hex'))
-wasm.memory[0] = 576 & 0xff
-wasm.memory[1] = (576 >> 8) & 0xff
-
-wasm.memory[8] = 64 & 0xff
-// wasm.memory.set(buf, 500)
+wasm.exports.init(0, 576, 64)
 
 wasm.memory.set(buf, 500)
-// wasm.memory[508] = 0x01
-// wasm.memory[571] = 0x80
-// console.log(wasm.exports.absorb(500, buf.byteLength, 0))
+
 wasm.memory.fill(0, 24, 224)
-var padLen = wasm.exports.pad(576, 500 + buf.byteLength, buf.byteLength)
-var overlay = wasm.exports.absorb(500, 500 + buf.byteLength + padLen, 0)
-// wasm.memory.fill(0, 500, 700)
-console.log(Buffer.from(wasm.memory.subarray(500, 524)).toString('hex'))
-// console.log(overlay)
-// wasm.memory.set(buf, 500 + overlay)
-// console.log(Buffer.from(wasm.memory.subarray(500, 524)).toString('hex'))
-// var padLen = wasm.exports.pad(576, 500 + overlay + buf.byteLength, buf.byteLength)
-// overlay = wasm.exports.absorb(500, overlay + buf.byteLength + padLen, 0)
+// var padLen = wasm.exports.pad(576, 500 + buf.byteLength, buf.byteLength)
+
+var overlay = wasm.exports.absorb(500, 500 + buf.byteLength, 0)
+
+wasm.memory.fill(0, 500, 500 + overlay)
+wasm.memory.set(buf, 500 + overlay)
+
+var padLen = wasm.exports.pad(576, 500 + overlay + buf.byteLength, 2 * buf.byteLength)
+overlay = wasm.exports.absorb(500, 500 + overlay + buf.byteLength + padLen, 0)
 wasm.exports.f_permute(0)
+
 // console.log(Buffer.from(wasm.memory.subarray(24, 88)).toString('hex'))
+
 wasm.exports.squeeze(884, 0, 512)
 console.log(Buffer.from(wasm.memory.subarray(884, 948)).toString('hex'))
 
-// hash.update(buf)
-console.log(Buffer.from(keccak512.digest(buf)).toString('hex'))
-// console.log(Buffer.from(keccak512.digest(Buffer.concat([buf,buf]))).toString('hex'))
+// console.log(Buffer.from(keccak512.digest(buf)).toString('hex'))
+console.log(Buffer.from(keccak512.digest(Buffer.concat([buf,buf]))).toString('hex'))
 // let head = 0
 // const freeList = []
 

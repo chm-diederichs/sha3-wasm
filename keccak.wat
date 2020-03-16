@@ -29,14 +29,47 @@
         (call $i64.log (get_local $0))
         (return (get_local $0)))
 
-  (func $init (export "init") (param $ctx i32)
-      ;; schema
-      ;;   i32 rate;
-      ;;   i32 prev_bytes;
-      ;;   i64 length;
-      ;;   i64 inlen;
-      ;;   state[25, 50, 100, 200]
-      )
+  (func $init (export "init") (param $ctx i32) (param $rate i32) (param $length i32) 
+      ;; schema 216 bytes
+      ;;    0..4  i32 rate;
+      ;;    4..8  i32 bytes_previously read;
+      ;;   8..16  i64 length;
+      ;; 16..216  i64[] state[25]
+
+      (get_local $ctx)
+      (get_local $rate)
+      (i32.store)
+
+      (get_local $ctx)
+      (get_local $length)
+      (i64.extend_u/i32)
+      (i64.store offset=8)
+
+      (i64.store offset=16  (get_local $ctx)(i64.const 0))
+      (i64.store offset=16  (get_local $ctx)(i64.const 0))
+      (i64.store offset=32  (get_local $ctx)(i64.const 0))
+      (i64.store offset=40  (get_local $ctx)(i64.const 0))
+      (i64.store offset=48  (get_local $ctx)(i64.const 0))
+      (i64.store offset=56  (get_local $ctx)(i64.const 0))
+      (i64.store offset=64  (get_local $ctx)(i64.const 0))
+      (i64.store offset=72  (get_local $ctx)(i64.const 0))
+      (i64.store offset=80  (get_local $ctx)(i64.const 0))
+      (i64.store offset=88  (get_local $ctx)(i64.const 0))
+      (i64.store offset=964 (get_local $ctx) (i64.const 0))
+      (i64.store offset=104 (get_local $ctx) (i64.const 0))
+      (i64.store offset=112 (get_local $ctx) (i64.const 0))
+      (i64.store offset=120 (get_local $ctx) (i64.const 0))
+      (i64.store offset=128 (get_local $ctx) (i64.const 0))
+      (i64.store offset=136 (get_local $ctx) (i64.const 0))
+      (i64.store offset=144 (get_local $ctx) (i64.const 0))
+      (i64.store offset=152 (get_local $ctx) (i64.const 0))
+      (i64.store offset=160 (get_local $ctx) (i64.const 0))
+      (i64.store offset=168 (get_local $ctx) (i64.const 0))
+      (i64.store offset=176 (get_local $ctx) (i64.const 0))
+      (i64.store offset=184 (get_local $ctx) (i64.const 0))
+      (i64.store offset=192 (get_local $ctx) (i64.const 0))
+      (i64.store offset=200 (get_local $ctx) (i64.const 0))
+      (i64.store offset=208 (get_local $ctx) (i64.const 0)))
 
   ;; TODO: pad properly
   (func $pad (export "pad") (param $rate i32) (param $input i32) (param $inlen i32)
@@ -106,10 +139,9 @@
       (set_local $rate)
 
       (i32.load offset=4 (get_local $ctx))
-      (i64.load offset=8 (get_local $ctx))
-      (i64.const 25)
-      (i64.mul)
-      (i32.wrap/i64)
+      (get_local $rate)
+      (i32.const 8)
+      (i32.div_u)
       (i32.rem_u)
       (tee_local $tmp)
       (get_local $tmp)
@@ -148,11 +180,12 @@
                           (get_local $ctx)
                           (get_local $i)
                           (i32.add)
-                          (i64.load offset=24)
+                          (i64.load offset=16)
                           (get_local $input)
                           (i64.load)
                           (i64.xor)
-                          (i64.store offset=24)
+                          ;; (call $i64.log_tee)
+                          (i64.store offset=16)
 
                           ;; i, input += 8
                           (get_local $input)
@@ -173,11 +206,11 @@
                       (get_local $ctx)
                       (get_local $i)
                       (i32.add)
-                      (i64.load8_u offset=24)
+                      (i64.load8_u offset=16)
                       (get_local $input)
                       (i64.load8_u)
                       (i64.xor)
-                      (i64.store8 offset=24)
+                      (i64.store8 offset=16)
 
                       ;; i++, input++
                       (get_local $input)
@@ -218,7 +251,7 @@
       (local $byterate i32)
 
       (get_local $ctx)
-      (i32.const 24)
+      (i32.const 16)
       (i32.add)
       (set_local $state)
 
@@ -461,7 +494,7 @@
         (local $a_23 i64) (local $b_23 i64)
         (local $a_24 i64) (local $b_24 i64)
 
-        (set_local $state (i32.add (get_local $ctx) (i32.const 24)))
+        (set_local $state (i32.add (get_local $ctx) (i32.const 16)))
         (set_local $length (i64.load offset=8 (get_local $ctx)))
 
         (i64.load offset=0 (get_local $state))
@@ -539,31 +572,7 @@
         (i64.load offset=192 (get_local $state))
         (set_local $a_24)
 
-(call $i64.log (get_local $a_0 ))
-(call $i64.log (get_local $a_1 ))
-(call $i64.log (get_local $a_2 ))
-(call $i64.log (get_local $a_3 ))
-(call $i64.log (get_local $a_4 ))
-(call $i64.log (get_local $a_5 ))
-(call $i64.log (get_local $a_6 ))
-(call $i64.log (get_local $a_7 ))
-(call $i64.log (get_local $a_8 ))
-(call $i64.log (get_local $a_9 ))
-(call $i64.log (get_local $a_10))
-(call $i64.log (get_local $a_11))
-(call $i64.log (get_local $a_12))
-(call $i64.log (get_local $a_13))
-(call $i64.log (get_local $a_14))
-(call $i64.log (get_local $a_15))
-(call $i64.log (get_local $a_16))
-(call $i64.log (get_local $a_17))
-(call $i64.log (get_local $a_18))
-(call $i64.log (get_local $a_19))
-(call $i64.log (get_local $a_20))
-(call $i64.log (get_local $a_21))
-(call $i64.log (get_local $a_22))
-(call $i64.log (get_local $a_23))
-(call $i64.log (get_local $a_24))
+
         ;; ; ; ; ; ; ; ;;;
         ;; Perumutation ;;
         ;;; ; ; ; ; ; ; ;;
