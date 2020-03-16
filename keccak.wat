@@ -39,24 +39,30 @@
       )
 
   ;; TODO: pad properly
-  (func $pad (export "pad") (param $rate i64) (param $input i32) (param $inlen i64)     
+  (func $pad (export "pad") (param $rate i32) (param $input i32) (param $inlen i32)
+      (result i32)  
 
-      (i64.store8 (get_local $input) (i64.const 0x80))
+      (local $i i32)
+
+      (get_local $inlen)
+      (set_local $i)
+
+      (i64.store8 (get_local $input) (i64.const 0x01))
 
       (block $pad_end
           (loop $pad_start
-              (i64.add (get_local $inlen) (i64.const 1))
-              (i64.const 8)
-              (i64.mul)
+              (i32.add (get_local $inlen) (i32.const 1))
+              (i32.const 8)
+              (i32.mul)
               (get_local $rate)
-              (i64.rem_u)
-              (i64.const 0)
-              (i64.eq)
+              (i32.rem_u)
+              (i32.const 0)
+              (i32.eq)
               (br_if $pad_end)
 
               (get_local $inlen)
-              (i64.const 1)
-              (i64.add)
+              (i32.const 1)
+              (i32.add)
               (set_local $inlen)
 
               (get_local $input)
@@ -70,18 +76,26 @@
       ;; CHECK -> have to ensure this byte is zeroed before input, may have written over old input
       (get_local $input)
       (i64.load (get_local $input))
-      (i64.const 0x1)
-      (i64.and)
-      (i64.store))
+      (i64.const 0x80)
+      (i64.or)
+      (i64.store)
+
+      (get_local $inlen)
+      (i32.const 1)
+      (i32.add)
+      (set_local $inlen)
+      
+      (get_local $inlen)
+      (get_local $i)
+      (i32.sub))
 
   (func $absorb (export "absorb") (param $input i32) (param $inlen i32) (param $ctx i32)
       (result i32)
 
       (local $i i32)
+      (local $total_in i32)
       (local $width i64)
       (local $rate i32)
-
-      (set_local $i (i32.const 0))
 
       (get_local $ctx)
       (i32.load)
@@ -94,10 +108,21 @@
 
       (block $input_end
           (loop $next_round
+              (get_local $total_in)
+              (get_local $i)
+              (i32.add)
+              (set_local $total_in)
+
+              (set_local $i (i32.const 0))
+
               (block $rate_end
                   (loop $input
                       ;; last permute never called
-                      (i32.eq (get_local $i) (get_local $inlen))
+                      (get_local $i)
+                      (get_local $total_in)
+                      (i32.add)
+                      (get_local $inlen)
+                      (i32.eq)
                       (br_if $input_end)
 
                       (i32.mul (get_local $i) (i32.const 8))
@@ -116,10 +141,15 @@
                           (get_local $ctx)
                           (get_local $i)
                           (i32.add)
+                          (get_local $ctx)
+                          (get_local $i)
+                          (i32.add)
+                          (i64.load offset=24)
                           (get_local $input)
                           (get_local $i)
                           (i32.add)
                           (i64.load)
+                          (i64.xor)
                           (i64.store offset=24)
 
                           ;; i++
@@ -144,25 +174,25 @@
                       (i32.add)
                       (br $input)))
 
-              (block $capacity_end
-                  (loop $capacity
-                      (i32.mul (get_local $i) (i32.const 8))
-                      (i32.wrap/i64 (get_local $width))
-                      (i32.eq)
-                      (br_if $capacity_end)
+              ;; (block $capacity_end
+              ;;     (loop $capacity
+              ;;         (i32.mul (get_local $i) (i32.const 8))
+              ;;         (i32.wrap/i64 (get_local $width))
+              ;;         (i32.eq)
+              ;;         (br_if $capacity_end)
 
-                      ;; filled up bitrate, add capacity zerostring
-                      (get_local $ctx)
-                      (get_local $i)
-                      (i32.add)
-                      (i64.const 0)
-                      (i64.store)
+              ;;         ;; filled up bitrate, add capacity zerostring
+              ;;         (get_local $ctx)
+              ;;         (get_local $i)
+              ;;         (i32.add)
+              ;;         (i64.const 0)
+              ;;         (i64.store)
 
-                      (get_local $i)
-                      (i32.const 8)
-                      (i32.add)
-                      (set_local $i)
-                      (br $capacity)))
+              ;;         (get_local $i)
+              ;;         (i32.const 8)
+              ;;         (i32.add)
+              ;;         (set_local $i)
+              ;;         (br $capacity)))
 
               (get_local $ctx)
               (call $f_permute)
@@ -499,31 +529,31 @@
         (i64.load offset=192 (get_local $state))
         (set_local $a_24)
 
-;; (call $i64.log (get_local $a_0 ))
-;; (call $i64.log (get_local $a_1 ))
-;; (call $i64.log (get_local $a_2 ))
-;; (call $i64.log (get_local $a_3 ))
-;; (call $i64.log (get_local $a_4 ))
-;; (call $i64.log (get_local $a_5 ))
-;; (call $i64.log (get_local $a_6 ))
-;; (call $i64.log (get_local $a_7 ))
-;; (call $i64.log (get_local $a_8 ))
-;; (call $i64.log (get_local $a_9 ))
-;; (call $i64.log (get_local $a_10))
-;; (call $i64.log (get_local $a_11))
-;; (call $i64.log (get_local $a_12))
-;; (call $i64.log (get_local $a_13))
-;; (call $i64.log (get_local $a_14))
-;; (call $i64.log (get_local $a_15))
-;; (call $i64.log (get_local $a_16))
-;; (call $i64.log (get_local $a_17))
-;; (call $i64.log (get_local $a_18))
-;; (call $i64.log (get_local $a_19))
-;; (call $i64.log (get_local $a_20))
-;; (call $i64.log (get_local $a_21))
-;; (call $i64.log (get_local $a_22))
-;; (call $i64.log (get_local $a_23))
-;; (call $i64.log (get_local $a_24))
+(call $i64.log (get_local $a_0 ))
+(call $i64.log (get_local $a_1 ))
+(call $i64.log (get_local $a_2 ))
+(call $i64.log (get_local $a_3 ))
+(call $i64.log (get_local $a_4 ))
+(call $i64.log (get_local $a_5 ))
+(call $i64.log (get_local $a_6 ))
+(call $i64.log (get_local $a_7 ))
+(call $i64.log (get_local $a_8 ))
+(call $i64.log (get_local $a_9 ))
+(call $i64.log (get_local $a_10))
+(call $i64.log (get_local $a_11))
+(call $i64.log (get_local $a_12))
+(call $i64.log (get_local $a_13))
+(call $i64.log (get_local $a_14))
+(call $i64.log (get_local $a_15))
+(call $i64.log (get_local $a_16))
+(call $i64.log (get_local $a_17))
+(call $i64.log (get_local $a_18))
+(call $i64.log (get_local $a_19))
+(call $i64.log (get_local $a_20))
+(call $i64.log (get_local $a_21))
+(call $i64.log (get_local $a_22))
+(call $i64.log (get_local $a_23))
+(call $i64.log (get_local $a_24))
         ;; ; ; ; ; ; ; ;;;
         ;; Perumutation ;;
         ;;; ; ; ; ; ; ; ;;
