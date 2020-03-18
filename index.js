@@ -15,45 +15,6 @@ const wasm = require('./keccak.js')({
   }
 })
 
-/* Flow
-
-  Update:
-    Absorb
-    Absorb
-    Pad
-*/
-
-const buf = Buffer.alloc(189, Buffer.from('1234567890abcdef', 'hex'))
-// wasm.exports.init(0, 576, 64)
-
-// wasm.memory.set(buf, 500)
-
-// wasm.memory.fill(0, 16, 216)
-
-// var overlay = wasm.exports.absorb(0, 500, 500 + buf.byteLength)
-
-// wasm.memory.fill(0, 500, 500 + overlay)
-// wasm.memory.set(buf, 500 + overlay)
-
-// // var padLen = wasm.exports.pad(576, 500 + overlay + buf.byteLength, 2 * buf.byteLength)
-// // overlay = wasm.exports.absorb(0, 500, 500 + overlay + buf.byteLength + padLen)
-
-// overlay = wasm.exports.absorb(0, 500, 500 + overlay + buf.byteLength)
-// wasm.memory.fill(0, 500, 500 + overlay)
-// var padLen = wasm.exports.pad(576, 500 + overlay, 2 * buf.byteLength)
-// overlay = wasm.exports.absorb(0, 500, 500 + overlay + padLen)
-
-// console.log(Buffer.from(wasm.memory.subarray(500 + buf.byteLength, 500 + buf.byteLength + 72)).toString('hex'))
-// wasm.exports.f_permute(0)
-// // 1234567890010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080
-// // 1234567890010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080
-// // console.log(Buffer.from(wasm.memory.subarray(24, 88)).toString('hex'))
-
-// wasm.exports.squeeze(0, 884, 512)
-// console.log(Buffer.from(wasm.memory.subarray(884, 948)).toString('hex'))
-
-// // console.log(Buffer.from(keccak512.digest(buf)).toString('hex'))
-// console.log(Buffer.from(keccak512.digest(Buffer.concat([buf,buf]))).toString('hex'))
 let head = 0
 const freeList = []
 
@@ -94,11 +55,10 @@ Keccak.prototype.update = function (input, enc) {
   wasm.memory.fill(0, head, head + this.alignOffset + length)
   wasm.memory.set(inputBuf, head + this.alignOffset)
 
-  // console.log(Buffer.from(wasm.memory.subarray(head, head + 16)).toString('hex'))
 
   this.alignOffset = wasm.exports.absorb(this.pointer, head, head + this.alignOffset + length)
-  // console.log(this.alignOffset)
   this.inputLength += length
+
   return this
 }
 
@@ -115,8 +75,8 @@ Keccak.prototype.digest = function (enc, digestLength, offset = 0) {
   if (this.alignOffset) wasm.memory.fill(0, head, head + this.alignOffset)
 
   wasm.exports.absorb(this.pointer, head, head + this.alignOffset + padLen)
-
   wasm.exports.squeeze(this.pointer, head, digestLength / 8)
+
   const resultBuf = Buffer.from(wasm.memory.subarray(head, head + digestLength / 8))
 
   if (!enc) {    

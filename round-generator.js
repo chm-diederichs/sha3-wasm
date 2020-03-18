@@ -31,9 +31,7 @@ function theta_2() {
 function theta_3(i) {
   let str = ''
   for (let i = 0; i < 5; i++) {
-    str += `(i64.shr_u (get_local $c_${i + 1 > 4 ? i - 4 : i + 1}) (i64.sub (get_local $length) (i64.const 1)))
-(i64.shl (get_local $c_${i + 1 > 4 ? i - 4 : i + 1}) (i64.const 1))
-(i64.or)
+    str += `(i64.rotl (get_local $c_${i + 1 > 4 ? i - 4 : i + 1}) (i64.const 1))
 (get_local $c_${(i - 1) < 0 ? 4 + i : i - 1})
 (i64.xor)
 (set_local $d_${i})\n
@@ -56,9 +54,12 @@ function rho_pi () {
   let _y = y
 
   for (let t = 0; t < 24; t++) {
-    str += `(i64.shr_u (get_local $a_${(x + 5 * y) % 25}) (i64.sub (get_local $length) (i64.rem_u (i64.const ${(t + 1) * (t + 2) / 2}) (get_local $length))))
-(i64.shl (get_local $a_${(x + 5 * y) % 25}) (i64.rem_u (i64.const ${(t + 1) * (t + 2) / 2}) (get_local $length)))
-(i64.or)
+    str += (t + 1) * (t + 2) / 2 < 33
+      ?`(i64.rotl (get_local $a_${(x + 5 * y) % 25}) (i64.const ${((t + 1) * (t + 2) / 2) % 64}))
+(set_local $b_${(y + 5 * (((2 * x) + (y * 3)) % 5) % 25)})
+
+`
+      :`(i64.rotr (get_local $a_${(x + 5 * y) % 25}) (i64.const ${64 - (((t + 1) * (t + 2) / 2) % 64)}))
 (set_local $b_${(y + 5 * (((2 * x) + (y * 3)) % 5) % 25)})
 
 `
@@ -97,7 +98,7 @@ function iota (i) {
 (get_local $a_0)
 (i64.const ${rc[i]})
 (i64.xor)
-(set_local $a_0)\n\n(call $i64.log (get_local $a_0))\n\n`
+(set_local $a_0)\n\n`
 
 return `;; IOTA\n
 (set_local $lfsr (i64.const 0))

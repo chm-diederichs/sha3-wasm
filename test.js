@@ -2,7 +2,6 @@ const Keccak = require('./')
 const crypto = require('crypto')
 const tape = require('tape')
 const jsRef = require('js-sha3').keccak256
-// const vectors = require('./vectors.json')
 
 // timing benchmark
 {
