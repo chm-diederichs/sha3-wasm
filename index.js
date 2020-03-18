@@ -147,6 +147,8 @@ Hash.ready = function (cb) {
 
 Hash.prototype.ready = Keccak.ready
 
+module.exports.SUPPORTED = typeof WebAssembly !== 'undefined'
+
 function noop () {}
 
 function formatInput (input, enc = null) {
