@@ -6,7 +6,11 @@ Keccak hash functions implemented in WebAssembly.
 
 ## Usage
 ```js
-const Keccak = require('keccak-wasm')
+const Keccak = require('sha3-wasm')
+
+if (!Keccak.SUPPORTED) {
+  console.log('WebAssembly not supported by your runtime')
+}
 
 // default is 256bit
 const hash = new Keccak()
@@ -35,7 +39,7 @@ Update the hash with a given input. Input may be passed as a `buffer` or as a `s
 
 Compute the digest of the hash. If `enc` is specified, the digest shall be returned as an `enc` encoded string, otherwise a `buffer` is returned. Keccak may produced arbitrary length outputs, so `digestLength` may be specified in bits, otherwise the security parameter of the hash is used by default.
 
-An exisiting `UInt8Array` may be passed as `enc` to write the hash to a preallocated buffer at a given `offset`.
+An exisiting `Uint8Array` may be passed as `enc` to write the hash to a preallocated buffer at a given `offset`.
 
 ## License
 
