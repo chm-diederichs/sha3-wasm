@@ -1,4 +1,5 @@
 # sha3-wasm
+[![Build Status](https://travis-ci.org/chm-diederichs/keccak-wasm.svg?branch=master)](https://travis-ci.org/chm-diederichs/keccak-wasm)
 
 Keccak-p based hash functions implemented in WebAssembly.
 
