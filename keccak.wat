@@ -36,25 +36,17 @@
       ;;   8..16  i64 length;
       ;; 16..216  i64[] state[25]
 
-      (get_local $ctx)
-      (get_local $rate)
-      (i32.store)
-
-      (get_local $ctx)
-      (get_local $length)
-      (i64.extend_u/i32)
-      (i64.store offset=8)
-
-      (i64.store offset=16  (get_local $ctx)(i64.const 0))
-      (i64.store offset=16  (get_local $ctx)(i64.const 0))
-      (i64.store offset=32  (get_local $ctx)(i64.const 0))
-      (i64.store offset=40  (get_local $ctx)(i64.const 0))
-      (i64.store offset=48  (get_local $ctx)(i64.const 0))
-      (i64.store offset=56  (get_local $ctx)(i64.const 0))
-      (i64.store offset=64  (get_local $ctx)(i64.const 0))
-      (i64.store offset=72  (get_local $ctx)(i64.const 0))
-      (i64.store offset=80  (get_local $ctx)(i64.const 0))
-      (i64.store offset=88  (get_local $ctx)(i64.const 0))
+      (i64.store offset=0  (get_local $ctx) (i64.const 0))
+      (i64.store offset=8  (get_local $ctx) (i64.const 0))
+      (i64.store offset=16  (get_local $ctx) (i64.const 0))
+      (i64.store offset=32  (get_local $ctx) (i64.const 0))
+      (i64.store offset=40  (get_local $ctx) (i64.const 0))
+      (i64.store offset=48  (get_local $ctx) (i64.const 0))
+      (i64.store offset=56  (get_local $ctx) (i64.const 0))
+      (i64.store offset=64  (get_local $ctx) (i64.const 0))
+      (i64.store offset=72  (get_local $ctx) (i64.const 0))
+      (i64.store offset=80  (get_local $ctx) (i64.const 0))
+      (i64.store offset=88  (get_local $ctx) (i64.const 0))
       (i64.store offset=964 (get_local $ctx) (i64.const 0))
       (i64.store offset=104 (get_local $ctx) (i64.const 0))
       (i64.store offset=112 (get_local $ctx) (i64.const 0))
@@ -69,7 +61,16 @@
       (i64.store offset=184 (get_local $ctx) (i64.const 0))
       (i64.store offset=192 (get_local $ctx) (i64.const 0))
       (i64.store offset=200 (get_local $ctx) (i64.const 0))
-      (i64.store offset=208 (get_local $ctx) (i64.const 0)))
+      (i64.store offset=208 (get_local $ctx) (i64.const 0))
+
+      (get_local $ctx)
+      (get_local $rate)
+      (i32.store)
+
+      (get_local $ctx)
+      (get_local $length)
+      (i64.extend_u/i32)
+      (i64.store offset=8))
 
   ;; TODO: pad properly
   (func $pad (export "pad") (param $rate i32) (param $input i32) (param $inlen i32)
@@ -184,7 +185,6 @@
                           (get_local $input)
                           (i64.load)
                           (i64.xor)
-                          ;; (call $i64.log_tee)
                           (i64.store offset=16)
 
                           ;; i, input += 8
@@ -250,8 +250,7 @@
       (i32.const 8)
       (i32.rem_u))
 
-  (func $squeeze (export "squeeze") (param $ctx i32) (param $output i32) (param $length i32)
-      ;; this is all wrong
+  (func $squeeze (export "squeeze") (param $ctx i32) (param $output i32) (param $digest_length i32)
       (local $state i32)
       (local $byte_count i32)
       (local $i i32)
@@ -269,9 +268,6 @@
 
       (block $squeeze_end
           (loop $squeeze
-              (i32.ge_u (get_local $byte_count) (get_local $length))
-              (br_if $squeeze_end)
-
               (set_local $i (i32.const 0))
               (block $truncate
                   (get_local $output)
@@ -446,6 +442,9 @@
                   (i64.load offset=192 (get_local $state))
                   (i64.store offset=192))
               
+              (i32.ge_u (get_local $byte_count) (get_local $digest_length))
+              (br_if $squeeze_end)
+
               (get_local $output)
               (get_local $byterate)
               (i32.add)
