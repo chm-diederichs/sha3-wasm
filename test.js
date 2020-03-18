@@ -1,121 +1,136 @@
 const Keccak = require('./')
 const crypto = require('crypto')
 const tape = require('tape')
-const jsRef = require('js-sha3').keccak256
+const jsRef = require('js-sha3')
 
-// timing benchmark
-{
-  const buf = Buffer.alloc(8192)
-  crypto.randomFillSync(buf)
+const hashes = [
+  'sha3_224',
+  'sha3_256',
+  'sha3_384',
+  'sha3_512',
+  'keccak224',
+  'keccak256',
+  'keccak384',
+  'keccak512',
+]
 
-  const hash = new Keccak()
-  const jsHash = jsRef.create()
-
-  console.time('wasm')
-  for (let i = 0; i < 1000; i++) {
-    hash.update(buf)
-  }
-  const res = hash.digest('hex')
-  console.timeEnd('wasm')
-
-  console.time('js')
-  for (let i = 0; i < 1000; i++) {
-    jsHash.update(buf)
-  }
-  const jsRes = Buffer.from(jsHash.digest()).toString('hex')
-  console.timeEnd('js')
-
-  console.log('\nhashes are consistent: ', res === jsRes)
-}
-
-tape('empty input', function (t) {
-  const hash = new Keccak().digest('hex')
-  const ref = Buffer.from(jsRef.digest('')).toString('hex')
-  console.log(hash)
-  t.equal(hash, ref, 'consistent for empty input')
-  t.end()
-})
-
-tape('naive input fuzz', function (t) {
-  for (let i = 0; i < 1000; i++) {
-    const buf = crypto.randomBytes(2 ** 18 * Math.random())
-
-    const hash = new Keccak().update(buf).digest('hex')
-    const ref = Buffer.from(jsRef.update(buf).digest()).toString('hex')
-
-    if (hash !== ref) console.log(buf.length)
-    t.ok(hash === ref)
-  }
-  t.end()
-})
-
-tape.skip('test power of 2 length buffers', function (t) {
-  for (let i = 0; i < 25; i++) {  
-    const hash = new Keccak()
-    const refHash = jsRef.create()
-    
-    const buf = Buffer.alloc(2 ** i)
-
-    const test = hash.update(buf).digest('hex')
-    const ref = Buffer.from(refHash.update(buf).digest()).toString('hex')
-
-    t.ok(test === ref)
-  }
-  t.end()
-})
-
-tape('fuzz multiple updates', function (t) {
-  const hash = new Keccak()
-  const refHash = jsRef.create()
-
-  for (let i = 0; i < 2; i++) {  
-    const buf = crypto.randomBytes(2**16 * Math.random())
-
-    hash.update(buf)
-    refHash.update(buf)
-  }
-
-  t.same(hash.digest('hex'), Buffer.from(refHash.digest()).toString('hex'), 'multiple updates consistent')
-  t.end()
-})
-
-tape('several instances updated simultaneously', function (t) {
-  const hash1 = new Keccak()
-  const hash2 = new Keccak()
-  const refHash = jsRef.create()
-
-  const buf = Buffer.alloc(1024)
-
-  for (let i = 0; i < 10; i++) {
+hashes.map(type => {
+  // timing benchmark
+  {
+    console.log(type)
+    const buf = Buffer.alloc(128)
     crypto.randomFillSync(buf)
 
-    if (Math.random() < 0.5) {
-      hash1.update(buf)
-      hash2.update(buf)
-    } else {
-      hash2.update(buf)
-      hash1.update(buf)
+    const hash = Keccak[type]()
+    const jsHash = jsRef[type].create()
+
+    console.time('wasm')
+    for (let i = 0; i < 100000; i++) {
+      hash.update(buf)
     }
-    refHash.update(buf)
+    const res = hash.digest('hex')
+    console.timeEnd('wasm')
+
+    console.time('js')
+    for (let i = 0; i < 100000; i++) {
+      jsHash.update(buf)
+    }
+    const jsRes = Buffer.from(jsHash.digest()).toString('hex')
+    console.timeEnd('js')
+    console.log('')
+    // console.log('\nhashes are consistent: ', res === jsRes)
   }
-
-  const res = Buffer.from(refHash.digest()).toString('hex')
-  const res1 = hash1.digest('hex')
-  const res2 = hash2.digest('hex')
-
-  t.equal(res, res1, 'consistent with reference')
-  t.equal(res1, res2, 'consistent with eachother')
-  t.end()
 })
 
-tape('reported bugs', function (t) {
-  const testBuf = Buffer.from('hello')
+hashes.map(type => {
+  tape('empty input', function (t) {
+    const hash = Keccak[type]().digest('hex')
+    const ref = Buffer.from(jsRef[type].digest('')).toString('hex')
+    t.equal(hash, ref, 'consistent for empty input')
+    t.end()
+  })
 
-  const res = Buffer.from(jsRef.update(testBuf).digest()).toString('hex')
-  const res1 = new Keccak().update(testBuf).digest('hex')
-  const res2 = new Keccak().update(testBuf).digest('hex')
+  tape('naive input fuzz', function (t) {
+    for (let i = 0; i < 100; i++) {
+      const buf = crypto.randomBytes(2 ** 18 * Math.random())
 
-  t.equal(res, res1)
-  t.equal(res1, res2)
-  t.end()
+      const hash = Keccak[type]().update(buf).digest('hex')
+      const ref = Buffer.from(jsRef[type].update(buf).digest()).toString('hex')
+
+      if (hash !== ref) console.log(buf.length)
+      t.ok(hash === ref)
+    }
+    t.end()
+  })
+
+  tape.skip('test power of 2 length buffers', function (t) {
+    for (let i = 0; i < 29; i++) {  
+      const hash = Keccak[type]()
+      const refHash = jsRef[type].create()
+      
+      const buf = Buffer.alloc(2 ** i)
+
+      const test = hash.update(buf).digest('hex')
+      const ref = Buffer.from(refHash.update(buf).digest()).toString('hex')
+
+      t.ok(test === ref)
+    }
+    t.end()
+  })
+
+  tape('fuzz multiple updates', function (t) {
+    const hash = Keccak[type]()
+    const refHash = jsRef[type].create()
+
+    for (let i = 0; i < 2; i++) {  
+      const buf = crypto.randomBytes(2**16 * Math.random())
+
+      hash.update(buf)
+      refHash.update(buf)
+    }
+
+    t.same(hash.digest('hex'), Buffer.from(refHash.digest()).toString('hex'), 'multiple updates consistent')
+    t.end()
+  })
+
+  tape('several instances updated simultaneously', function (t) {
+    const hash1 = Keccak[type]()
+    const hash2 = Keccak[type]()
+    const refHash = jsRef[type].create()
+
+    const buf = Buffer.alloc(1024)
+
+    for (let i = 0; i < 10; i++) {
+      crypto.randomFillSync(buf)
+
+      if (Math.random() < 0.5) {
+        hash1.update(buf)
+        hash2.update(buf)
+      } else {
+        hash2.update(buf)
+        hash1.update(buf)
+      }
+      refHash.update(buf)
+    }
+
+    const res = Buffer.from(refHash.digest()).toString('hex')
+    const res1 = hash1.digest('hex')
+    const res2 = hash2.digest('hex')
+
+    t.equal(res, res1, 'consistent with reference')
+    t.equal(res1, res2, 'consistent with eachother')
+    t.end()
+  })
+
+  tape('reported bugs', function (t) {
+    const testBuf = Buffer.from('hello')
+
+    const res = Buffer.from(jsRef[type].update(testBuf).digest()).toString('hex')
+    const res1 = Keccak[type]().update(testBuf).digest('hex')
+    const res2 = Keccak[type]().update(testBuf).digest('hex')
+
+    t.equal(res, res1)
+    t.equal(res1, res2)
+    t.end()
+  })
 })

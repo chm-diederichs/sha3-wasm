@@ -18,29 +18,61 @@ const wasm = require('./keccak.js')({
 let head = 0
 const freeList = []
 
-module.exports = Keccak = function (bitrate = 1088, wordLength = 64) {
-  if (!(this instanceof Keccak)) return new Keccak()
+const SHA3_PAD_FLAG = 0
+const KECCAK_PAD_FLAG = 1
+const SHAKE_PAD_FLAG = 2
+
+module.exports.Hash = Hash
+
+module.exports.Sha3 = Sha3 = function (bitrate) {
+  return new Hash(bitrate, SHA3_PAD_FLAG)
+}
+
+module.exports.sha3_224 = () => Sha3(1152)
+module.exports.sha3_256 = () => Sha3(1088)
+module.exports.sha3_384 = () => Sha3(832)
+module.exports.sha3_512 = () => Sha3(576)
+
+module.exports.Keccak = Keccak = function (bitrate) {
+  return new Hash(bitrate, KECCAK_PAD_FLAG)
+}
+
+module.exports.keccak224 = () => Keccak(1152)
+module.exports.keccak256 = () => Keccak(1088)
+module.exports.keccak384 = () => Keccak(832)
+module.exports.keccak512 = () => Keccak(576)
+
+module.exports.SHAKE = SHAKE = function (bitrate, outputBits) {
+  return new Hash(bitrate, SHAKE_PAD_FLAG, outputBits)
+}
+
+module.exports.SHAKE128 = outputBits => SHAKE(1344, outputBits)
+module.exports.SHAKE256 = outputBits => SHAKE(1088, outputBits)
+
+function Hash (bitrate = 1088, padRule = KECCAK_PAD_FLAG, digestLength) {
+  if (!(this instanceof Hash)) return new Hash(bitrate, padRule, digestLength)
   if (!(wasm && wasm.exports)) throw new Error('WASM not loaded. Wait for Keccak.ready(cb)')
 
   if (!freeList.length) {
     freeList.push(head)
-    head += 500 // need 100 bytes for internal state
+    head += 208 // need 100 bytes for internal state
   }
 
   this.finalized = false
   this.bitrate = bitrate
-  this.digestLength = (1600 - bitrate) / 2
+  this.digestLength = digestLength || (1600 - bitrate) / 2
   this.pointer = freeList.pop()
   this.alignOffset = 0
   this.inputLength = 0
+  this.padRule = padRule
 
-  wasm.memory.fill(0, this.pointer, this.pointer + 216)
-  wasm.exports.init(this.pointer, this.bitrate, wordLength)
+  wasm.memory.fill(0, this.pointer, this.pointer + 208)
+  wasm.exports.init(this.pointer, this.bitrate)
 
-  if (this.pointer + this.digestLength > wasm.memory.length) wasm.realloc(this.pointer + 216)
+  if (this.pointer + this.digestLength > wasm.memory.length) wasm.realloc(this.pointer + 208)
 }
 
-Keccak.prototype.update = function (input, enc) {
+Hash.prototype.update = function (input, enc) {
   assert(this.finalized === false, 'Hash instance finalized')
 
   if (head % 8 !== 0) head += 8 - head % 8
@@ -62,22 +94,23 @@ Keccak.prototype.update = function (input, enc) {
   return this
 }
 
-Keccak.prototype.digest = function (enc, digestLength, offset = 0) {
+Hash.prototype.digest = function (enc, offset = 0, digestLength) {
   assert(this.finalized === false, 'Hash instance finalized')
 
-  digestLength = digestLength || this.digestLength
+  if (digestLength && this.padRule === SHAKE_PAD_FLAG) this.digestLength = digestLength
+  assert(this.digestLength, 'digestLength must be specified')
 
   this.finalized = true
   freeList.push(this.pointer)
 
-  const padLen = wasm.exports.pad(this.bitrate, head + this.alignOffset, this.inputLength)
+  const padLen = wasm.exports.pad(this.bitrate, head + this.alignOffset, this.inputLength, this.padRule)
 
   if (this.alignOffset) wasm.memory.fill(0, head, head + this.alignOffset)
 
   wasm.exports.absorb(this.pointer, head, head + this.alignOffset + padLen)
-  wasm.exports.squeeze(this.pointer, head, digestLength / 8)
+  wasm.exports.squeeze(this.pointer, head, this.digestLength / 8)
 
-  const resultBuf = Buffer.from(wasm.memory.subarray(head, head + digestLength / 8))
+  const resultBuf = Buffer.from(wasm.memory.subarray(head, head + this.digestLength / 8))
 
   if (!enc) {    
     return resultBuf
@@ -97,7 +130,7 @@ Keccak.prototype.digest = function (enc, digestLength, offset = 0) {
   return enc
 }
 
-Keccak.ready = function (cb) {
+Hash.ready = function (cb) {
   if (!cb) cb = noop
   if (!wasm) return cb(new Error('WebAssembly not supported'))
 
@@ -112,7 +145,7 @@ Keccak.ready = function (cb) {
   return p
 }
 
-Keccak.prototype.ready = Keccak.ready
+Hash.prototype.ready = Keccak.ready
 
 function noop () {}
 

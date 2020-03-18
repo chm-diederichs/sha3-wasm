@@ -30,11 +30,10 @@
         (return (get_local $0)))
 
   (func $init (export "init") (param $ctx i32) (param $rate i32) (param $length i32) 
-      ;; schema 216 bytes
-      ;;    0..4  i32 rate;
-      ;;    4..8  i32 bytes_previously read;
-      ;;   8..16  i64 length;
-      ;; 16..216  i64[] state[25]
+      ;; schema  216 bytes
+      ;;   0..4  i32 rate;
+      ;;   4..8  i32 bytes_previously read;
+      ;; 8..208  i64[] state[25]
 
       (i64.store offset=0  (get_local $ctx) (i64.const 0))
       (i64.store offset=8  (get_local $ctx) (i64.const 0))
@@ -61,19 +60,12 @@
       (i64.store offset=184 (get_local $ctx) (i64.const 0))
       (i64.store offset=192 (get_local $ctx) (i64.const 0))
       (i64.store offset=200 (get_local $ctx) (i64.const 0))
-      (i64.store offset=208 (get_local $ctx) (i64.const 0))
 
       (get_local $ctx)
       (get_local $rate)
-      (i32.store)
+      (i32.store))
 
-      (get_local $ctx)
-      (get_local $length)
-      (i64.extend_u/i32)
-      (i64.store offset=8))
-
-  ;; TODO: pad properly
-  (func $pad (export "pad") (param $rate i32) (param $input i32) (param $inlen i32)
+  (func $pad (export "pad") (param $rate i32) (param $input i32) (param $inlen i32) (param $pad_rule i32)
       (result i32)  
 
       (local $i i32)
@@ -81,8 +73,26 @@
       (get_local $inlen)
       (set_local $i)
 
-      (i64.store8 (get_local $input) (i64.const 0x01))
+      (block $pad_rule
+          (block $0
+              (block $1
+                  (block $2
+                      (block $switch
+                          (get_local $pad_rule)
+                          (br_table $0 $1 $2)))
+                  
+                  ;; SHAKE
+                  (i64.store8 (get_local $input) (i64.const 0x1f))
+                  (br $pad_rule))
 
+              ;; Keccak
+              (i64.store8 (get_local $input) (i64.const 0x01))
+              (br $pad_rule))
+
+          ;; SHA-3
+          (i64.store8 (get_local $input) (i64.const 0x06))
+          (br $pad_rule))
+                
       (block $pad_end
           (loop $pad_start
               (i32.add (get_local $inlen) (i32.const 1))
@@ -183,11 +193,11 @@
                   (get_local $ctx)
                   (get_local $i)
                   (i32.add)
-                  (i64.load offset=16)
+                  (i64.load offset=8)
                   (get_local $input)
                   (i64.load)
                   (i64.xor)
-                  (i64.store offset=16)
+                  (i64.store offset=8)
 
                   ;; i, input += 8
                   (get_local $input)
@@ -208,11 +218,11 @@
               (get_local $ctx)
               (get_local $i)
               (i32.add)
-              (i64.load8_u offset=16)
+              (i64.load8_u offset=8)
               (get_local $input)
               (i64.load8_u)
               (i64.xor)
-              (i64.store8 offset=16)
+              (i64.store8 offset=8)
 
               ;; i++, input++
               (get_local $input)
@@ -252,7 +262,7 @@
       (local $byterate i32)
 
       (get_local $ctx)
-      (i32.const 16)
+      (i32.const 8)
       (i32.add)
       (set_local $state)
 
@@ -461,7 +471,6 @@
         (local $c_4 i64) (local $d_4 i64)
 
         (local $state i32)
-        (local $length i64)
 
         (local $count i32)
         (local $lfsr i64)
@@ -494,8 +503,7 @@
         (local $a_23 i64) (local $b_23 i64)
         (local $a_24 i64) (local $b_24 i64)
 
-        (set_local $state (i32.add (get_local $ctx) (i32.const 16)))
-        (set_local $length (i64.load offset=8 (get_local $ctx)))
+        (set_local $state (i32.add (get_local $ctx) (i32.const 8)))
 
         (i64.load offset=0 (get_local $state))
         (set_local $a_0)
