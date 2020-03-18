@@ -1,0 +1,26 @@
+{
+  "name": "sha3-wasm",
+  "version": "0.0.2",
+  "description": "WebAssembly implementation of Keccak hash functions",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chm-diederichs/keccak-wasm.git"
+  },
+  "author": "Christophe Diederichs",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chm-diederichs/keccak-wasm/issues"
+  },
+  "homepage": "https://github.com/chm-diederichs/keccak-wasm#readme",
+  "dependencies": {
+    "nanoassert": "^2.0.0"
+  },
+  "devDependencies": {
+    "js-sha3": "^0.8.0",
+    "tape": "^4.13.2"
+  }
+}
