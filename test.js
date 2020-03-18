@@ -4,34 +4,33 @@ const tape = require('tape')
 const jsRef = require('js-sha3').keccak256
 // const vectors = require('./vectors.json')
 
-// // timing benchmark
-// {
-//   const buf = Buffer.alloc(8192)
-//   crypto.randomFillSync(buf)
+// timing benchmark
+{
+  const buf = Buffer.alloc(8192)
+  crypto.randomFillSync(buf)
 
-//   const hash = new Keccak(576)
-//   const jsHash = jsRef.create()
+  const hash = new Keccak()
+  const jsHash = jsRef.create()
 
-//   console.time('wasm')
-//   for (let i = 0; i < 1000; i++) {
-//     hash.update(buf)
-//   }
-//   const res = hash.digest('hex')
-//   console.timeEnd('wasm')
+  console.time('wasm')
+  for (let i = 0; i < 1000; i++) {
+    hash.update(buf)
+  }
+  const res = hash.digest('hex')
+  console.timeEnd('wasm')
 
-//   console.time('js')
-//   for (let i = 0; i < 1000; i++) {
-//     jsHash.update(buf)
-//   }
-//   const jsRes = Buffer.from(jsHash.digest()).toString('hex')
-//   console.timeEnd('js')
-//   console.log(jsRes)
-//   console.log(res)
-//   console.log('\nhashes are consistent: ', res === jsRes)
-// }
+  console.time('js')
+  for (let i = 0; i < 1000; i++) {
+    jsHash.update(buf)
+  }
+  const jsRes = Buffer.from(jsHash.digest()).toString('hex')
+  console.timeEnd('js')
+
+  console.log('\nhashes are consistent: ', res === jsRes)
+}
 
 tape('empty input', function (t) {
-  const hash = new Keccak(1088).digest('hex')
+  const hash = new Keccak().digest('hex')
   const ref = Buffer.from(jsRef.digest('')).toString('hex')
   console.log(hash)
   t.equal(hash, ref, 'consistent for empty input')
@@ -39,10 +38,10 @@ tape('empty input', function (t) {
 })
 
 tape('naive input fuzz', function (t) {
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 1000; i++) {
     const buf = crypto.randomBytes(2 ** 18 * Math.random())
 
-    const hash = Keccak(1088).update(buf).digest('hex')
+    const hash = new Keccak().update(buf).digest('hex')
     const ref = Buffer.from(jsRef.update(buf).digest()).toString('hex')
 
     if (hash !== ref) console.log(buf.length)
@@ -53,7 +52,7 @@ tape('naive input fuzz', function (t) {
 
 tape.skip('test power of 2 length buffers', function (t) {
   for (let i = 0; i < 25; i++) {  
-    const hash = Keccak(1088)
+    const hash = new Keccak()
     const refHash = jsRef.create()
     
     const buf = Buffer.alloc(2 ** i)
@@ -67,7 +66,7 @@ tape.skip('test power of 2 length buffers', function (t) {
 })
 
 tape('fuzz multiple updates', function (t) {
-  const hash = Keccak(1088)
+  const hash = new Keccak()
   const refHash = jsRef.create()
 
   for (let i = 0; i < 2; i++) {  
@@ -82,8 +81,8 @@ tape('fuzz multiple updates', function (t) {
 })
 
 tape('several instances updated simultaneously', function (t) {
-  const hash1 = Keccak(1088)
-  const hash2 = Keccak(1088)
+  const hash1 = new Keccak()
+  const hash2 = new Keccak()
   const refHash = jsRef.create()
 
   const buf = Buffer.alloc(1024)
@@ -114,8 +113,8 @@ tape('reported bugs', function (t) {
   const testBuf = Buffer.from('hello')
 
   const res = Buffer.from(jsRef.update(testBuf).digest()).toString('hex')
-  const res1 = Keccak(1088).update(testBuf).digest('hex')
-  const res2 = Keccak(1088).update(testBuf).digest('hex')
+  const res1 = new Keccak().update(testBuf).digest('hex')
+  const res2 = new Keccak().update(testBuf).digest('hex')
 
   t.equal(res, res1)
   t.equal(res1, res2)

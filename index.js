@@ -57,7 +57,7 @@ const buf = Buffer.alloc(189, Buffer.from('1234567890abcdef', 'hex'))
 let head = 0
 const freeList = []
 
-module.exports = Keccak = function (bitrate = 576, wordLength = 64) {
+module.exports = Keccak = function (bitrate = 1088, wordLength = 64) {
   if (!(this instanceof Keccak)) return new Keccak()
   if (!(wasm && wasm.exports)) throw new Error('WASM not loaded. Wait for Keccak.ready(cb)')
 
@@ -91,10 +91,13 @@ Keccak.prototype.update = function (input, enc) {
   
   if (head + length > wasm.memory.length) wasm.realloc(head + length)
   
-  // wasm.memory.fill(0, head, head + this.alignOffset + length)
+  wasm.memory.fill(0, head, head + this.alignOffset + length)
   wasm.memory.set(inputBuf, head + this.alignOffset)
-  
+
+  // console.log(Buffer.from(wasm.memory.subarray(head, head + 16)).toString('hex'))
+
   this.alignOffset = wasm.exports.absorb(this.pointer, head, head + this.alignOffset + length)
+  // console.log(this.alignOffset)
   this.inputLength += length
   return this
 }
@@ -112,7 +115,6 @@ Keccak.prototype.digest = function (enc, digestLength, offset = 0) {
   if (this.alignOffset) wasm.memory.fill(0, head, head + this.alignOffset)
 
   wasm.exports.absorb(this.pointer, head, head + this.alignOffset + padLen)
-  wasm.exports.f_permute(this.pointer)
 
   wasm.exports.squeeze(this.pointer, head, digestLength / 8)
   const resultBuf = Buffer.from(wasm.memory.subarray(head, head + digestLength / 8))
