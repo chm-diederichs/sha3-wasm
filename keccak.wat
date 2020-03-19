@@ -80,7 +80,7 @@
                       (block $switch
                           (get_local $pad_rule)
                           (br_table $0 $1 $2)))
-                  
+
                   ;; SHAKE
                   (i64.store8 (get_local $input) (i64.const 0x1f))
                   (br $pad_rule))
@@ -163,7 +163,6 @@
 
       (block $input_end
           (loop $input
-              ;; last permute never called
               (i32.mul (get_local $i) (i32.const 8))
               (get_local $rate)
               (i32.eq)
@@ -580,10 +579,8 @@
         (i64.load offset=192 (get_local $state))
         (set_local $a_24)
 
-        ;;  TODO: change manual rotation to i64.rot
-        ;; ; ; ; ; ; ; ;;;
-        ;; Perumutation ;;
-        ;;; ; ; ; ; ; ; ;;
+
+        ;; PERMUTATION
 
         ;; ROUND 0
 
@@ -5529,7 +5526,8 @@
         (set_local $a_0)
 
 
-        ;; PERMUTATION END
+        ;; PERMUTATION ENDS
+
 
         (get_local $state)
         (get_local $a_0)

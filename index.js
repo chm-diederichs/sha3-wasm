@@ -22,10 +22,11 @@ const SHA3_PAD_FLAG = 0
 const KECCAK_PAD_FLAG = 1
 const SHAKE_PAD_FLAG = 2
 
-module.exports.Hash = Hash
-
-module.exports.Sha3 = Sha3 = function (bitrate) {
-  return new Hash(bitrate, SHA3_PAD_FLAG)
+module.exports = {
+  Hash,
+  Sha3,
+  Keccak,
+  SHAKE
 }
 
 module.exports.sha3_224 = () => Sha3(1152)
@@ -33,21 +34,26 @@ module.exports.sha3_256 = () => Sha3(1088)
 module.exports.sha3_384 = () => Sha3(832)
 module.exports.sha3_512 = () => Sha3(576)
 
-module.exports.Keccak = Keccak = function (bitrate) {
-  return new Hash(bitrate, KECCAK_PAD_FLAG)
-}
 
 module.exports.keccak224 = () => Keccak(1152)
 module.exports.keccak256 = () => Keccak(1088)
 module.exports.keccak384 = () => Keccak(832)
 module.exports.keccak512 = () => Keccak(576)
 
-module.exports.SHAKE = SHAKE = function (bitrate, outputBits) {
-  return new Hash(bitrate, SHAKE_PAD_FLAG, outputBits)
-}
-
 module.exports.SHAKE128 = outputBits => SHAKE(1344, outputBits)
 module.exports.SHAKE256 = outputBits => SHAKE(1088, outputBits)
+
+function Sha3(bitrate) {
+  return new Hash(bitrate, SHA3_PAD_FLAG)
+}
+
+function Keccak (bitrate) {
+  return new Hash(bitrate, KECCAK_PAD_FLAG)
+}
+
+function SHAKE (bitrate, outputBits) {
+  return new Hash(bitrate, SHAKE_PAD_FLAG, outputBits)
+}
 
 function Hash (bitrate = 1088, padRule = KECCAK_PAD_FLAG, digestLength) {
   if (!(this instanceof Hash)) return new Hash(bitrate, padRule, digestLength)
