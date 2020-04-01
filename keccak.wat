@@ -30,7 +30,7 @@
         (return (get_local $0)))
 
   (func $init (export "init") (param $ctx i32) (param $rate i32) (param $length i32) 
-      ;; schema  216 bytes
+      ;; schema  208 bytes
       ;;   0..4  i32 rate;
       ;;   4..8  i32 bytes_previously read;
       ;; 8..208  i64[] state[25]
