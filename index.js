@@ -1,5 +1,4 @@
 const assert = require('nanoassert')
-keccak512 = require('js-sha3').keccak512;
 
 const wasm = require('./keccak.js')({
   imports: {
