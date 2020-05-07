@@ -58,7 +58,6 @@ function Hash (bitrate = 1088, padRule = KECCAK_PAD_FLAG, digestLength) {
   if (!(this instanceof Hash)) return new Hash(bitrate, padRule, digestLength)
   if (!(wasm && wasm.exports)) throw new Error('WASM not loaded. Wait for Keccak.ready(cb)')
 
-  console.log(wasm.byteLength)
   if (!freeList.length) {
     freeList.push(head)
     head += 208 // need 100 bytes for internal state
@@ -88,7 +87,7 @@ Hash.prototype.update = function (input, enc) {
   
   assert(inputBuf instanceof Uint8Array, 'input must be Uint8Array or Buffer')
   
-  if (head + length > wasm.memory.length) wasm.realloc(head + length)
+  if (head + this.alignOffset + length > wasm.memory.length) wasm.realloc(head + length)
   
   wasm.memory.fill(0, head, head + this.alignOffset + length)
   wasm.memory.set(inputBuf, head + this.alignOffset)
