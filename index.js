@@ -58,6 +58,7 @@ function Hash (bitrate = 1088, padRule = KECCAK_PAD_FLAG, digestLength) {
   if (!(this instanceof Hash)) return new Hash(bitrate, padRule, digestLength)
   if (!(wasm && wasm.exports)) throw new Error('WASM not loaded. Wait for Keccak.ready(cb)')
 
+  console.log(wasm.byteLength)
   if (!freeList.length) {
     freeList.push(head)
     head += 208 // need 100 bytes for internal state
@@ -71,10 +72,10 @@ function Hash (bitrate = 1088, padRule = KECCAK_PAD_FLAG, digestLength) {
   this.inputLength = 0
   this.padRule = padRule
 
+  if (this.pointer + this.digestLength > wasm.memory.length) wasm.realloc(this.pointer + 208)
+
   wasm.memory.fill(0, this.pointer, this.pointer + 208)
   wasm.exports.init(this.pointer, this.bitrate)
-
-  if (this.pointer + this.digestLength > wasm.memory.length) wasm.realloc(this.pointer + 208)
 }
 
 Hash.prototype.update = function (input, enc) {
@@ -150,7 +151,7 @@ Hash.ready = function (cb) {
   return p
 }
 
-Hash.prototype.ready = Keccak.ready
+Hash.prototype.ready = Hash.ready
 
 module.exports.SUPPORTED = typeof WebAssembly !== 'undefined'
 
