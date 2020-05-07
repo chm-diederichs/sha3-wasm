@@ -1,6 +1,6 @@
 {
   "name": "sha3-wasm",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "WebAssembly implementation of Keccak hash functions",
   "main": "index.js",
   "scripts": {
